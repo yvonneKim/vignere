@@ -52,9 +52,38 @@ func getConfig() Config {
 	return config
 }
 
+func get_frequencies(ciphertext string, key_len int) map[rune]int {
+	result := make(map[rune]int)
+	for i := 0; i < len(ciphertext); i += key_len {
+		result[rune(ciphertext[i])] += 1
+	}
+	return result
+}
+
+func solve(ciphertext string) string {
+	for key_len := 1; key_len < 10; key_len++ {
+		freqs := get_frequencies(ciphertext, key_len)
+		fmt.Println(freqs)
+	}
+	return ""
+}
+
+func sanitize(text string) string {
+	result := ""
+	for _, letter := range text {
+		if letter < 97 || letter > 122 {
+			continue
+		}
+		result += string(letter)
+	}
+
+	return result
+}
+
 func encode(plaintext string, keyword string) string {
 	result := ""
 	plaintext = strings.ToLower(plaintext)
+	plaintext = sanitize(plaintext)
 	for i, letter := range plaintext {
 		letter_index := strings.Index(alphabet, string(letter))
 
@@ -79,6 +108,10 @@ func decode(ciphertext string, keyword string) string {
 		keyword_index := strings.Index(alphabet, string(keyword_letter))
 
 		plain_index := (letter_index - keyword_index) % len(alphabet)
+
+		if plain_index < 0 {
+			plain_index = len(alphabet) + plain_index
+		}
 		plain_letter := string(alphabet[plain_index])
 
 		result += plain_letter
@@ -88,17 +121,21 @@ func decode(ciphertext string, keyword string) string {
 
 func run(c Config) {
 	s := bufio.NewScanner(c.file)
-
 	var result string
 	for s.Scan() {
 		if c.encode {
 			result = encode(s.Text(), c.keyword)
-		} else {
-			result = decode(s.Text(), c.keyword)
+			fmt.Println(result)
+			continue
 		}
-	}
 
-	fmt.Println(result)
+		if c.keyword != "" {
+			result = decode(s.Text(), c.keyword)
+			fmt.Println(result)
+			continue
+		}
+		result = solve(s.Text())
+	}
 }
 
 func main() {
